@@ -21,18 +21,23 @@ app.use(express.json());
 // Routes
 app.use("/", Router);
 
-app.listen(PORT, async () => {
+// Start the Server ONLY after a successful DB connection
+const startServer = async () => {
     try {
-        const res = await connectDB();
-
+        await connectDB(); // Ensure DB is connected before starting server
+        app.listen(PORT, () => {
+            console.log(`🚀 Server is running on port ${PORT}`);
+        });
     } catch (error) {
         console.error("❌ Failed to connect to the database:", error);
+        process.exit(1); // Exit the process if DB connection fails
     }
-    console.log(`🚀 Server is running on port ${PORT}`);
-});
+};
 
-// Connect to DB
+// Start server only in local environment (not needed in Vercel)
+if (process.env.NODE_ENV !== "production") {
+    startServer();
+}
 
-
-// Export app for Vercel (instead of using app.listen)
+// Export app for Vercel (Vercel handles server start)
 module.exports = app;
