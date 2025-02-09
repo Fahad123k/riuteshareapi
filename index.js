@@ -11,10 +11,11 @@ const app = express();
 
 // CORS Configuration
 app.use(cors({
-    origin: ["http://localhost:5173", "https://your-frontend.vercel.app"], // Update with your frontend URL
+    origin: ["http://localhost:5173", "https://route-share-front.vercel.app"],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
-
 // Middleware
 app.use(express.json());
 
