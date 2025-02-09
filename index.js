@@ -10,9 +10,10 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 app.use(cors({
-    origin: "http://localhost:5173",
-    credentials: true,  // Allow cookies if needed
+    origin: ["http://localhost:5173", "https://your-frontend.vercel.app"],
+    credentials: true,
 }));
+
 
 
 // Middleware
