@@ -23,14 +23,19 @@ const registerUser = async (req, res) => {
         }
 
         // Check if user already exists
+        console.time("findUser");
         const user = await User.findOne({ email }).lean();
+        console.timeEnd("findUser");
+
         if (user) {
             return res.status(400).json({ message: "User already exists" });
         }
 
         // Hash password
+        console.time("hashPassword");
         const saltRounds = parseInt(process.env.SALT_ROUNDS) || 8;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
+        console.timeEnd("hashPassword");
 
         // Create and save user
         const newUser = new User({
@@ -39,7 +44,9 @@ const registerUser = async (req, res) => {
             password: hashedPassword,
         });
 
+        console.time("saveUser");
         await newUser.save();
+        console.timeEnd("saveUser");
 
         res.status(201).json({ message: "User registered successfully" });
 
