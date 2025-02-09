@@ -5,6 +5,7 @@ const Router = require("./routes/index");
 const cors = require("cors");
 
 dotenv.config(); // Load environment variables
+const PORT = process.env.PORT || 8000;
 
 const app = express();
 
@@ -20,8 +21,18 @@ app.use(express.json());
 // Routes
 app.use("/", Router);
 
+app.listen(PORT, async () => {
+    try {
+        const res = await connectDB();
+
+    } catch (error) {
+        console.error("❌ Failed to connect to the database:", error);
+    }
+    console.log(`🚀 Server is running on port ${PORT}`);
+});
+
 // Connect to DB
-connectDB();
+
 
 // Export app for Vercel (instead of using app.listen)
 module.exports = app;
