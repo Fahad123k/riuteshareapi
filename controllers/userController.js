@@ -1,9 +1,64 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const Journey = require("../models/Journey")
 
 
+const createJourney = async (req, res) => {
+    try {
+        const { userId, leaveFrom, goingTo, date, arrivalDate, departureTime, arrivalTime, maxCapacity, fareStart, costPerKg } = req.body;
+        console.log("Received Data:", req.body);
 
+        // Check if userId is present
+        if (!userId) {
+            return res.status(400).json({ success: false, message: "User ID is required" });
+        }
+
+        // Validate required fields
+        const requiredFields = { leaveFrom, goingTo, date, maxCapacity, fareStart, costPerKg };
+        for (const [key, value] of Object.entries(requiredFields)) {
+            if (!value || value.trim() === "") {
+                return res.status(400).json({ success: false, message: `${key} is required` });
+            }
+        }
+
+        // Create a new journey
+        const journey = new Journey({
+            userId,
+            leaveFrom,
+            goingTo,
+            date,
+            arrivalDate,
+            departureTime,
+            arrivalTime,
+            maxCapacity,
+            fareStart,
+            costPerKg,
+        });
+
+        await journey.save();
+        res.status(201).json({ success: true, message: "Journey Published successfully", journey });
+
+    } catch (error) {
+        console.error("Journey Creation Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+const getAllJourney = async (req, res) => {
+
+    try {
+        const alljourney = Journey.find()
+            .populate("userId", "-password -__v")
+            .lean()
+
+        res.status(200).json(journeys);
+
+    } catch (error) {
+        console.error("Journey Creation Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+}
 
 const registerUser = async (req, res) => {
     try {
@@ -215,6 +270,10 @@ const deleteUser = async (req, res) => {
     }
 };
 
+const publish = async (req, res) => {
+
+}
+
 module.exports = {
     registerUser,
     loginUser,
@@ -222,4 +281,6 @@ module.exports = {
     getUserById,
     updateUser,
     deleteUser,
+    createJourney,
+    getAllJourney,
 };
