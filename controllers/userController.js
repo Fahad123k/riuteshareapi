@@ -6,7 +6,19 @@ const Journey = require("../models/Journey")
 
 const createJourney = async (req, res) => {
     try {
-        const { userId, leaveFrom, goingTo, date, arrivalDate, departureTime, arrivalTime, maxCapacity, fareStart, costPerKg } = req.body;
+        const {
+            userId,
+            leaveFrom,
+            goingTo,
+            date,
+            arrivalDate,
+            departureTime,
+            arrivalTime,
+            maxCapacity,
+            fareStart,
+            costPerKg
+        } = req.body;
+
         console.log("Received Data:", req.body);
 
         // Check if userId is present
@@ -14,10 +26,27 @@ const createJourney = async (req, res) => {
             return res.status(400).json({ success: false, message: "User ID is required" });
         }
 
-        // Validate required fields
-        const requiredFields = { leaveFrom, goingTo, date, maxCapacity, fareStart, costPerKg };
+        // Validate leaveFrom and goingTo (must be objects with position {lat, lng})
+        if (
+            !leaveFrom || typeof leaveFrom !== 'object' ||
+            !leaveFrom.position || typeof leaveFrom.position !== 'object' ||
+            leaveFrom.position.lat === undefined || leaveFrom.position.lng === undefined
+        ) {
+            return res.status(400).json({ success: false, message: "Valid leaveFrom position is required" });
+        }
+
+        if (
+            !goingTo || typeof goingTo !== 'object' ||
+            !goingTo.position || typeof goingTo.position !== 'object' ||
+            goingTo.position.lat === undefined || goingTo.position.lng === undefined
+        ) {
+            return res.status(400).json({ success: false, message: "Valid goingTo position is required" });
+        }
+
+        // Validate other required fields
+        const requiredFields = { date, maxCapacity, fareStart, costPerKg };
         for (const [key, value] of Object.entries(requiredFields)) {
-            if (!value || value.trim() === "") {
+            if (value === undefined || value === null || value === '') {
                 return res.status(400).json({ success: false, message: `${key} is required` });
             }
         }
