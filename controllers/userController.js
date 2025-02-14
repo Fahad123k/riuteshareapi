@@ -26,22 +26,20 @@ const createJourney = async (req, res) => {
             return res.status(400).json({ success: false, message: "User ID is required" });
         }
 
-        // Validate leaveFrom and goingTo (must be objects with position {lat, lng})
         if (
             !leaveFrom || typeof leaveFrom !== 'object' ||
-            !leaveFrom.position || typeof leaveFrom.position !== 'object' ||
-            leaveFrom.position.lat === undefined || leaveFrom.position.lng === undefined
+            leaveFrom.lat === undefined || leaveFrom.lng === undefined
         ) {
             return res.status(400).json({ success: false, message: "Valid leaveFrom position is required" });
         }
 
         if (
             !goingTo || typeof goingTo !== 'object' ||
-            !goingTo.position || typeof goingTo.position !== 'object' ||
-            goingTo.position.lat === undefined || goingTo.position.lng === undefined
+            goingTo.lat === undefined || goingTo.lng === undefined
         ) {
             return res.status(400).json({ success: false, message: "Valid goingTo position is required" });
         }
+
 
         // Validate other required fields
         const requiredFields = { date, maxCapacity, fareStart, costPerKg };
@@ -66,6 +64,7 @@ const createJourney = async (req, res) => {
         });
 
         await journey.save();
+        console.log("journey created succesfully")
         res.status(201).json({ success: true, message: "Journey Published successfully", journey });
 
     } catch (error) {

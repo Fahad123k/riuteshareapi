@@ -5,17 +5,16 @@ const journeySchema = new mongoose.Schema(
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
         leaveFrom: {
-            position: {
-                lat: { type: Number, required: true },
-                lng: { type: Number, required: true },
-            },
+            lat: { type: Number, required: true },
+            lng: { type: Number, required: true },
+
         },
 
         goingTo: {
-            position: {
-                lat: { type: Number, required: true },
-                lng: { type: Number, required: true },
-            },
+
+            lat: { type: Number, required: true },
+            lng: { type: Number, required: true },
+
         },
 
         date: { type: Date, required: true },
@@ -23,9 +22,9 @@ const journeySchema = new mongoose.Schema(
         departureTime: { type: String, required: false },
         arrivalTime: { type: String, required: false },
 
-        maxCapacity: { type: Number, required: true },
-        fareStart: { type: Number, required: true },
-        costPerKg: { type: Number, required: true },
+        maxCapacity: { type: String, required: true },
+        fareStart: { type: String, required: true },
+        costPerKg: { type: String, required: true },
     },
     { timestamps: true }
 );
