@@ -76,14 +76,40 @@ const createJourney = async (req, res) => {
 const getAllJourney = async (req, res) => {
 
     try {
-        const alljourney = Journey.find()
+        const alljourney = await Journey.find()
+
+        if (alljourney == null || alljourney.length === 0) {
+            res.status(500).json({ success: false, message: "No  journeys found, Please create one first" });
+        }
+        // .populate("userId", "-password -__v")
+        // .lean()
+        console.log(alljourney)
+
+        res.status(200).json(alljourney);
+
+    } catch (error) {
+        console.error("Error while fetchn=ing journies", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+}
+
+const getJourneyByID = async (req, res) => {
+
+    try {
+        const alljourney = await Journey.find()
             .populate("userId", "-password -__v")
             .lean()
 
-        res.status(200).json(journeys);
+        if (alljourney == null || alljourney.length === 0) {
+            res.status(500).json({ success: false, message: "No  journeys found, Please create one first" });
+        }
+
+        console.log(alljourney)
+
+        res.status(200).json(alljourney);
 
     } catch (error) {
-        console.error("Journey Creation Error:", error);
+        console.error("Error while fetchn=ing journies", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 }
@@ -311,4 +337,5 @@ module.exports = {
     deleteUser,
     createJourney,
     getAllJourney,
+    getJourneyByID
 };
