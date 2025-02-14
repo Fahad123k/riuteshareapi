@@ -83,7 +83,7 @@ const getAllJourney = async (req, res) => {
         }
         // .populate("userId", "-password -__v")
         // .lean()
-        console.log(alljourney)
+        // console.log(JSON.parse(alljourney))
 
         res.status(200).json(alljourney);
 
