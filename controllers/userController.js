@@ -73,25 +73,79 @@ const createJourney = async (req, res) => {
     }
 };
 
-const getAllJourney = async (req, res) => {
+// const getAllJourney = async (req, res) => {
 
+//     try {
+//         const alljourney = await Journey.find()
+
+//         if (alljourney == null || alljourney.length === 0) {
+//             res.status(500).json({ success: false, message: "No  journeys found, Please create one first" });
+//         }
+//         // .populate("userId", "-password -__v")
+//         // .lean()
+//         // console.log(JSON.parse(alljourney))
+
+//         res.status(200).json(alljourney);
+
+//     } catch (error) {
+//         console.error("Error while fetchn=ing journies", error);
+//         res.status(500).json({ success: false, message: "Server Error" });
+//     }
+// }
+
+
+const axios = require("axios");
+
+const getLocation = async (lat, lng) => {
     try {
-        const alljourney = await Journey.find()
+        const response = await axios.get("https://revgeocode.search.hereapi.com/v1/revgeocode", {
+            params: {
+                at: `${lat},${lng}`,
+                apiKey: process.env.HERE_API_KEY, // Store API key in environment variable
+            },
+        });
 
-        if (alljourney == null || alljourney.length === 0) {
-            res.status(500).json({ success: false, message: "No  journeys found, Please create one first" });
+        if (response.data.items.length > 0) {
+            return response.data.items[0].address.label;
+        } else {
+            return "Unknown Location";
         }
-        // .populate("userId", "-password -__v")
-        // .lean()
-        // console.log(JSON.parse(alljourney))
-
-        res.status(200).json(alljourney);
-
     } catch (error) {
-        console.error("Error while fetchn=ing journies", error);
+        console.error("Error fetching location:", error);
+        return "Unknown Location";
+    }
+};
+
+const getAllJourney = async (req, res) => {
+    try {
+        const allJourneys = await Journey.find();
+
+        if (!allJourneys || allJourneys.length === 0) {
+            return res.status(404).json({ success: false, message: "No journeys found" });
+        }
+
+        // Fetch locations for each journey
+        const updatedJourneys = await Promise.all(
+            allJourneys.map(async (journey) => {
+                const leaveFrom = await getLocation(journey.leaveFrom.lat, journey.leaveFrom.lng);
+                const goingTo = await getLocation(journey.goingTo.lat, journey.goingTo.lng);
+
+                return {
+                    ...journey._doc, // Spread the existing journey data
+                    leaveFrom, // Replace lat/lng with formatted address
+                    goingTo,   // Replace lat/lng with formatted address
+                };
+            })
+        );
+
+        res.status(200).json(updatedJourneys);
+    } catch (error) {
+        console.error("Error fetching journeys:", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
-}
+};
+
+
 
 const getJourneyByID = async (req, res) => {
 
