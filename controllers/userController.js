@@ -127,6 +127,8 @@ const getLocation = async (lat, lng) => {
     }
 };
 
+// const getNameByID= async
+
 const getAllJourney = async (req, res) => {
     try {
         const allJourneys = await Journey.find();
@@ -139,12 +141,20 @@ const getAllJourney = async (req, res) => {
         for (let i = 0; i < allJourneys.length; i++) {
             const journey = allJourneys[i];
             await delay(i * 500); // Stagger requests to avoid rate limits
+            const user = await User.findById(journey.userId);
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+            // console.log("res", user.name)
+            const username = user.name;
+
 
             const leaveFrom = await getLocation(journey.leaveFrom.lat, journey.leaveFrom.lng);
             const goingTo = await getLocation(journey.goingTo.lat, journey.goingTo.lng);
 
             updatedJourneys.push({
                 ...journey._doc,
+                username,
                 leaveFrom,
                 goingTo,
             });
