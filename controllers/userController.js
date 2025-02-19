@@ -94,25 +94,35 @@ const createJourney = async (req, res) => {
 //     }
 // }
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-
+const locationCache = new Map(); // Cache to store fetched locations
 
 const getLocation = async (lat, lng) => {
+    const key = `${lat},${lng}`;
+    if (locationCache.has(key)) {
+        return locationCache.get(key); // Return from cache if exists
+    }
+
+    await delay(500); // Add delay before making request
+
     try {
         const response = await axios.get("https://revgeocode.search.hereapi.com/v1/revgeocode", {
             params: {
                 at: `${lat},${lng}`,
-                apiKey: process.env.HERE_API_KEY, // Store API key in environment variable
+                apiKey: process.env.HERE_API_KEY,
             },
         });
 
         if (response.data.items.length > 0) {
-            return response.data.items[0].address.label;
+            const address = response.data.items[0].address;
+            locationCache.set(key, address); // Store in cache
+            return address;
         } else {
             return "Unknown Location";
         }
     } catch (error) {
-        console.error("Error fetching location:", error);
+        console.error("Error fetching location:", error.response?.data || error.message);
         return "Unknown Location";
     }
 };
@@ -125,19 +135,20 @@ const getAllJourney = async (req, res) => {
             return res.status(404).json({ success: false, message: "No journeys found" });
         }
 
-        // Fetch locations for each journey
-        const updatedJourneys = await Promise.all(
-            allJourneys.map(async (journey) => {
-                const leaveFrom = await getLocation(journey.leaveFrom.lat, journey.leaveFrom.lng);
-                const goingTo = await getLocation(journey.goingTo.lat, journey.goingTo.lng);
+        let updatedJourneys = [];
+        for (let i = 0; i < allJourneys.length; i++) {
+            const journey = allJourneys[i];
+            await delay(i * 500); // Stagger requests to avoid rate limits
 
-                return {
-                    ...journey._doc, // Spread the existing journey data
-                    leaveFrom, // Replace lat/lng with formatted address
-                    goingTo,   // Replace lat/lng with formatted address
-                };
-            })
-        );
+            const leaveFrom = await getLocation(journey.leaveFrom.lat, journey.leaveFrom.lng);
+            const goingTo = await getLocation(journey.goingTo.lat, journey.goingTo.lng);
+
+            updatedJourneys.push({
+                ...journey._doc,
+                leaveFrom,
+                goingTo,
+            });
+        }
 
         res.status(200).json(updatedJourneys);
     } catch (error) {
