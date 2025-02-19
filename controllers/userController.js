@@ -2,6 +2,7 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Journey = require("../models/Journey")
+const axios = require("axios");
 
 
 const createJourney = async (req, res) => {
@@ -94,7 +95,7 @@ const createJourney = async (req, res) => {
 // }
 
 
-const axios = require("axios");
+
 
 const getLocation = async (lat, lng) => {
     try {
