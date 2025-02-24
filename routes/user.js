@@ -13,7 +13,8 @@ const {
     loginUser,
     createJourney,
     getAllJourney,
-    getJourneyByID
+    getJourneyByID,
+    searchCities,
 } = require("../controllers/userController");
 
 router.post("/register", registerUser);
@@ -23,6 +24,7 @@ router.post("/login", loginUser);
 
 router.get("/all-user", getAllUsers);
 router.get("/all-journey", getAllJourney);
+router.get("/search", searchCities);
 router.get("/:id", getUserById);
 router.get("/ourney-by-id:id", getJourneyByID);
 router.put("/:id", updateUser);

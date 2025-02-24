@@ -22,10 +22,8 @@ const createJourney = async (req, res) => {
 
         console.log("Received Data:", req.body);
 
-        // Check if userId is present
-        if (!userId) {
-            return res.status(400).json({ success: false, message: "User ID is required" });
-        }
+        // Validate required fields
+        if (!userId) return res.status(400).json({ success: false, message: "User ID is required" });
 
         if (
             !leaveFrom || typeof leaveFrom !== 'object' ||
@@ -41,20 +39,24 @@ const createJourney = async (req, res) => {
             return res.status(400).json({ success: false, message: "Valid goingTo position is required" });
         }
 
-
-        // Validate other required fields
         const requiredFields = { date, maxCapacity, fareStart, costPerKg };
         for (const [key, value] of Object.entries(requiredFields)) {
-            if (value === undefined || value === null || value === '') {
+            if (!value) {
                 return res.status(400).json({ success: false, message: `${key} is required` });
             }
         }
 
-        // Create a new journey
+        // ✅ Store location as GeoJSON format
         const journey = new Journey({
             userId,
-            leaveFrom,
-            goingTo,
+            leaveFrom: {
+                type: "Point",
+                coordinates: [leaveFrom.lng, leaveFrom.lat] // GeoJSON format: [longitude, latitude]
+            },
+            goingTo: {
+                type: "Point",
+                coordinates: [goingTo.lng, goingTo.lat] // GeoJSON format
+            },
             date,
             arrivalDate,
             departureTime,
@@ -65,14 +67,16 @@ const createJourney = async (req, res) => {
         });
 
         await journey.save();
-        console.log("journey created succesfully")
-        res.status(201).json({ success: true, message: "Journey Published successfully", journey });
+        console.log("Journey created successfully");
+
+        res.status(201).json({ success: true, message: "Journey published successfully", journey });
 
     } catch (error) {
         console.error("Journey Creation Error:", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 };
+
 
 // const getAllJourney = async (req, res) => {
 
@@ -133,6 +137,8 @@ const getAllJourney = async (req, res) => {
     try {
         const allJourneys = await Journey.find();
 
+        // console.log(all)
+
         if (!allJourneys || allJourneys.length === 0) {
             return res.status(404).json({ success: false, message: "No journeys found" });
         }
@@ -149,8 +155,17 @@ const getAllJourney = async (req, res) => {
             const username = user.name;
 
 
-            const leaveFrom = await getLocation(journey.leaveFrom.lat, journey.leaveFrom.lng);
-            const goingTo = await getLocation(journey.goingTo.lat, journey.goingTo.lng);
+            const leaveFromLat = journey.leaveFrom.coordinates[1]; // Latitude
+            const leaveFromLng = journey.leaveFrom.coordinates[0]; // Longitude
+
+            const goingToLat = journey.goingTo.coordinates[1]; // Latitude
+            const goingToLng = journey.goingTo.coordinates[0]; // Longitude
+
+
+            // console.log(leaveFromLat, leaveFromLng);
+
+            const leaveFrom = await getLocation(leaveFromLat, leaveFromLng);
+            const goingTo = await getLocation(goingToLat, goingToLng);
 
             updatedJourneys.push({
                 ...journey._doc,
@@ -404,6 +419,67 @@ const publish = async (req, res) => {
 
 }
 
+
+// Search Journeys Based on Nearby Location
+const searchCities = async (req, res) => {
+    try {
+        let { leaveFromLat, leaveFromLng, goingToLat, goingToLng } = req.query;
+        console.log("params", req.query);
+
+
+        if (!leaveFromLat || !leaveFromLng || !goingToLat || !goingToLng) {
+            return res.status(400).json({ error: "Missing required parameters" });
+        }
+
+        // Convert to numbers
+        leaveFromLat = parseFloat(leaveFromLat);
+        leaveFromLng = parseFloat(leaveFromLng);
+        goingToLat = parseFloat(goingToLat);
+        goingToLng = parseFloat(goingToLng);
+
+        const maxDistanceKm = 5; // Search within 5 km
+        const radiusInRadians = maxDistanceKm / 6378.1; // Convert km to radians (Earth's radius ~6378.1 km)
+
+        // Find journeys within 5 km radius of leaveFrom
+        const journeys = await Journey.find({
+            leaveFrom: {
+                $geoWithin: {
+                    $centerSphere: [[leaveFromLng, leaveFromLat], radiusInRadians],
+                },
+            },
+            goingTo: {
+                $geoWithin: {
+                    $centerSphere: [[goingToLng, goingToLat], radiusInRadians],
+                },
+            },
+        });
+
+        if (journeys.length === 0) {
+            return res.status(404).json({ message: "No nearby journeys found" });
+        }
+
+        res.status(200).json(journeys);
+    } catch (error) {
+        console.error("Error searching journeys:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+// Haversine formula to calculate distance between two geo-coordinates
+const haversineDistance = (coord1, coord2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (coord2.lat - coord1.lat) * (Math.PI / 180);
+    const dLng = (coord2.lng - coord1.lng) * (Math.PI / 180);
+
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(coord1.lat * (Math.PI / 180)) * Math.cos(coord2.lat * (Math.PI / 180)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+};
+
+
 module.exports = {
     registerUser,
     loginUser,
@@ -413,5 +489,6 @@ module.exports = {
     deleteUser,
     createJourney,
     getAllJourney,
-    getJourneyByID
+    getJourneyByID,
+    searchCities,
 };
