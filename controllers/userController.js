@@ -131,6 +131,42 @@ const getLocation = async (lat, lng) => {
     }
 };
 
+const getJourneyNameByGeos = async (allJourneys) => {
+    let updatedJourneys = [];
+    for (let i = 0; i < allJourneys.length; i++) {
+        const journey = allJourneys[i];
+        await delay(i * 500); // Stagger requests to avoid rate limits
+        const user = await User.findById(journey.userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        // console.log("res", user.name)
+        const username = user.name;
+
+
+        const leaveFromLat = journey.leaveFrom.coordinates[1]; // Latitude
+        const leaveFromLng = journey.leaveFrom.coordinates[0]; // Longitude
+
+        const goingToLat = journey.goingTo.coordinates[1]; // Latitude
+        const goingToLng = journey.goingTo.coordinates[0]; // Longitude
+
+
+        // console.log(leaveFromLat, leaveFromLng);
+
+        const leaveFrom = await getLocation(leaveFromLat, leaveFromLng);
+        const goingTo = await getLocation(goingToLat, goingToLng);
+
+        updatedJourneys.push({
+            ...journey._doc,
+            username,
+            leaveFrom,
+            goingTo,
+        });
+    }
+
+    return updatedJourneys;
+}
+
 // const getNameByID= async
 
 const getAllJourney = async (req, res) => {
@@ -143,38 +179,7 @@ const getAllJourney = async (req, res) => {
             return res.status(404).json({ success: false, message: "No journeys found" });
         }
 
-        let updatedJourneys = [];
-        for (let i = 0; i < allJourneys.length; i++) {
-            const journey = allJourneys[i];
-            await delay(i * 500); // Stagger requests to avoid rate limits
-            const user = await User.findById(journey.userId);
-            if (!user) {
-                return res.status(404).json({ message: "User not found" });
-            }
-            // console.log("res", user.name)
-            const username = user.name;
-
-
-            const leaveFromLat = journey.leaveFrom.coordinates[1]; // Latitude
-            const leaveFromLng = journey.leaveFrom.coordinates[0]; // Longitude
-
-            const goingToLat = journey.goingTo.coordinates[1]; // Latitude
-            const goingToLng = journey.goingTo.coordinates[0]; // Longitude
-
-
-            // console.log(leaveFromLat, leaveFromLng);
-
-            const leaveFrom = await getLocation(leaveFromLat, leaveFromLng);
-            const goingTo = await getLocation(goingToLat, goingToLng);
-
-            updatedJourneys.push({
-                ...journey._doc,
-                username,
-                leaveFrom,
-                goingTo,
-            });
-        }
-
+        const updatedJourneys = await getJourneyNameByGeos(allJourneys)
         res.status(200).json(updatedJourneys);
     } catch (error) {
         console.error("Error fetching journeys:", error);
@@ -457,8 +462,9 @@ const searchCities = async (req, res) => {
         if (journeys.length === 0) {
             return res.status(404).json({ message: "No nearby journeys found" });
         }
+        const updatedJourneys = await getJourneyNameByGeos(journeys)
 
-        res.status(200).json(journeys);
+        res.status(200).json(updatedJourneys);
     } catch (error) {
         console.error("Error searching journeys:", error);
         res.status(500).json({ error: "Internal server error" });
