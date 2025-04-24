@@ -26,10 +26,13 @@ router.get("/all-user", getAllUsers);
 router.get("/all-journey", getAllJourney);
 router.get("/search", searchCities);
 router.get("/:id", getUserById);
-router.get("/ourney-by-id:id", getJourneyByID);
+router.get("/journey-by-id:id", getJourneyByID);
 router.put("/:id", updateUser);
 router.delete("/:id", deleteUser);
 module.exports = router;
+
+
+
 
 
 

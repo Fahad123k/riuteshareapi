@@ -15,6 +15,9 @@ const journeySchema = new mongoose.Schema(
         },
 
         date: { type: Date, required: true },
+        arrivalDate: { type: Date, required: true },
+        departureTime: { type: String, },
+        arrivalTime: { type: String, },
         maxCapacity: { type: String, required: true },
         fareStart: { type: String, required: true },
         costPerKg: { type: String, required: true },
