@@ -1,5 +1,5 @@
 const Booking = require('../models/Booking');
-
+const Journey = require('../models/Journey.js');
 const { io } = require('../index');
 
 
@@ -109,9 +109,35 @@ const getBookingById = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 }
+
+const getRequestsReceived = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Find all journeys created by this user
+        const myJourneys = await Journey.find({ createdBy: userId }).select('_id');
+
+        const journeyIds = myJourneys.map(journey => journey._id);
+
+        // Find bookings made for the journeys you posted
+        const requestsReceived = await Booking.find({ journeyId: { $in: journeyIds } })
+            .populate('journeyId')
+            .populate('user') // who made the request
+            .sort({ createdAt: -1 });
+
+        res.json(requestsReceived);
+    } catch (error) {
+        console.error('Error fetching requests received:', error);
+        res.status(500).json({ message: 'Server Error while fetching requests received' });
+    }
+};
+
+
+
 module.exports = {
     createBooking,
     acceptbooking,
     getAllBookings,
-    getBookingById
+    getBookingById,
+    getRequestsReceived
 }
