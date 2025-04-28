@@ -10,5 +10,6 @@ router.get("/", (req, res) => {
 
 // Use the user router for `/user` routes
 router.use('/user', userRouter);
+router.use('/booking', require('./booking'))
 
 module.exports = router;

@@ -188,27 +188,35 @@ const getAllJourney = async (req, res) => {
 };
 
 
-
 const getJourneyByID = async (req, res) => {
-
     try {
-        const alljourney = await Journey.find()
-            .populate("userId", "-password -__v")
-            .lean()
+        const id = req.params.id || req.query.id;  // Checks both
 
-        if (alljourney == null || alljourney.length === 0) {
-            res.status(500).json({ success: false, message: "No  journeys found, Please create one first" });
+        if (!id) {
+            return res.status(400).json({ success: false, message: "Journey ID is required" });
         }
 
-        console.log(alljourney)
+        const journey = await Journey.findById(id)
+            .populate("userId", "-password -__v")
+            .lean()
+            .exec();
 
-        res.status(200).json(alljourney);
+        if (!journey) {
+            return res.status(404).json({ success: false, message: "Journey not found" });
+        }
 
+        res.status(200).json({ success: true, data: journey });
     } catch (error) {
-        console.error("Error while fetchn=ing journies", error);
+        console.error("Error while fetching journey:", error);
+
+        if (error.name === 'CastError') {
+            return res.status(400).json({ success: false, message: "Invalid journey ID format" });
+        }
+
         res.status(500).json({ success: false, message: "Server Error" });
     }
-}
+};
+
 
 const registerUser = async (req, res) => {
     try {
