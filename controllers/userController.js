@@ -171,7 +171,8 @@ const getJourneyNameByGeos = async (allJourneys) => {
 
 const getAllJourney = async (req, res) => {
     try {
-        const allJourneys = await Journey.find();
+        const allJourneys = await Journey.find().sort({ createdAt: -1 });
+
 
         // console.log(all)
 
@@ -335,6 +336,7 @@ const loginUser = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid email or password" });
         }
 
+        // console.log("🔑 Hashed password from DB:", user.password);
         // Compare passwords
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
@@ -345,7 +347,7 @@ const loginUser = async (req, res) => {
         const token = jwt.sign(
             { id: user._id, email: user.email }, // Payload
             process.env.JWT_SECRET, // Secret key
-            { expiresIn: process.env.JWT_EXPIRES_IN || "1h" } // Expiration time
+            { expiresIn: process.env.JWT_EXPIRES_IN || "12h" } // Expiration time
         );
 
         // Remove sensitive data from the user object

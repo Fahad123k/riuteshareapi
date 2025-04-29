@@ -2,7 +2,7 @@ const express = require('express');
 const protect = require("../middleware/middleware");  // Import middleware
 const {
     createBooking,
-    acceptbooking,
+    updateBookingStatus,
     getAllBookings,
     getBookingById,
     getRequestsReceived
@@ -14,7 +14,7 @@ router.post('/book', protect, createBooking);
 router.patch("accept/:id")
 router.get('/all', getAllBookings)
 router.get('/my-bookings', protect, getBookingById);
-router.get('/booking-update', protect, acceptbooking);
+router.get('/update-status', protect, updateBookingStatus);
 router.get('/requests-received', protect, getRequestsReceived);
 
 

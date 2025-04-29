@@ -1,9 +1,12 @@
 const mongoose = require('mongoose');
 
-
-
-const bookingSchema = new mongoose.Schema(({
-    userId: {
+const bookingSchema = new mongoose.Schema({
+    requestedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+    requestedTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
@@ -22,9 +25,11 @@ const bookingSchema = new mongoose.Schema(({
         type: Date,
         default: Date.now
     }
-}));
+});
 
-const Booking = mongoose.model('Booking', bookingSchema)
 
+
+
+const Booking = mongoose.model('Booking', bookingSchema);
 
 module.exports = Booking;
