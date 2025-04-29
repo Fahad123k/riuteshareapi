@@ -5,7 +5,7 @@ module.exports = (server) => {
         cors: {
             origin: ["http://localhost:5173", "https://route-share-front.vercel.app"],
             credentials: true,
-            methods: ["GET", "POST", "PUT", "DELETE"]
+            methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         },
         connectionStateRecovery: {
             maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes

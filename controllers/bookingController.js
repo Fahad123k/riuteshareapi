@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const Journey = require('../models/Journey');
 const { io } = require('../socket');  // Import from socket.js
+const GeocodingService = require('../services/geocodingService');
 
 const createBooking = async (req, res) => {
     try {

@@ -14,7 +14,13 @@ router.post('/book', protect, createBooking);
 router.patch("accept/:id")
 router.get('/all', getAllBookings)
 router.get('/my-bookings', protect, getBookingById);
-router.get('/update-status', protect, updateBookingStatus);
+router.patch('/booking/:id/status', protect, updateBookingStatus);
+
+router.patch('/:id/status', protect, updateBookingStatus); // ✅ This is essential
+
+module.exports = router;
+
+// router.get('/update-status', protect, updateBookingStatus);
 router.get('/requests-received', protect, getRequestsReceived);
 
 

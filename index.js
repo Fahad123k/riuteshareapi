@@ -15,11 +15,12 @@ const server = http.createServer(app); // Create HTTP server with Express app
 const corsOptions = {
     origin: ["http://localhost:5173", "https://route-share-front.vercel.app"],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ["Content-Type", "Authorization"]
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors()); // Preflight support
 app.use(express.json());
 
 // Initialize Socket.io
