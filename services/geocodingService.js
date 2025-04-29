@@ -5,12 +5,13 @@ const axios = require('axios');
 const locationCache = new Map();
 const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours cache
 
+const HereApikey = process.env.HERE_API_KEY
+console.log("here api", process.env.HERE_API_KEY)
+
 class GeocodingService {
     constructor() {
-        this.apiKey = process.env.HERE_API_KEY;
-        if (!this.apiKey) {
-            throw new Error('HERE_API_KEY environment variable is required');
-        }
+        this.apiKey = HereApikey
+
     }
 
     async _fetchLocation(lat, lng) {
