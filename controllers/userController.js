@@ -221,10 +221,14 @@ const getJourneyByID = async (req, res) => {
 
 const registerUser = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, number, password } = req.body;
+
+
+        console.log("body is :-", req.body)
+
 
         // Validate input
-        if (!name || !email || !password) {
+        if (!name || !email || !password || !number) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
@@ -255,6 +259,7 @@ const registerUser = async (req, res) => {
         const newUser = new User({
             name,
             email,
+            number,
             password: hashedPassword,
         });
 
@@ -355,7 +360,10 @@ const loginUser = async (req, res) => {
             id: user._id,
             name: user.name,
             email: user.email,
+            number: user.number,
         };
+
+        console.log("Response", userResponse)
 
         res.status(200).json({
             success: true,
