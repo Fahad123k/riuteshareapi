@@ -48,7 +48,7 @@ router.get('/get-journeyby-id/:id?', protect, async (req, res) => {  // Protect 
     }
 });
 
-router.put("/:id", updateUser);
+router.put("/update", protect, updateUser);
 router.delete("/:id", deleteUser);
 
 module.exports = router;

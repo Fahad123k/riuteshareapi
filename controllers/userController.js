@@ -361,6 +361,8 @@ const loginUser = async (req, res) => {
             name: user.name,
             email: user.email,
             number: user.number,
+            idVerified: user.idVerified,
+            rating: user.rating,
         };
 
         console.log("Response", userResponse)
@@ -402,27 +404,30 @@ const getUserById = async (req, res) => {
 
 const updateUser = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const updates = req.body; // name, email, number, vehicle, etc.
 
-        // Hash password if updating
-        let updatedFields = { name, email };
-        if (password) {
-            const salt = await bcrypt.genSalt(10);
-            updatedFields.password = await bcrypt.hash(password, salt);
-        }
+        // Optional: Validate fields before update here
 
-        const user = await User.findByIdAndUpdate(req.params.id, updatedFields, {
-            new: true,
-            runValidators: true,
+        const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true });
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+
+        // console.log("adter update", user)
+        res.json({
+            message: "Profile updated successfully",
+            user: {
+                name: user.name,
+                email: user.email,
+                number: user.number,
+                rating: user.rating,
+                idVerified: user.idVerified,
+
+            }
         });
-
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        res.json({ message: "User updated successfully", user });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error(error);
+        res.status(500).send("Server error");
     }
 };
 
