@@ -191,30 +191,51 @@ const getAllJourney = async (req, res) => {
 
 const getJourneyByID = async (req, res) => {
     try {
-        const id = req.params.id || req.query.id;  // Checks both
+        const id = req.params.id || req.query.id;
 
         if (!id) {
-            return res.status(400).json({ success: false, message: "Journey ID is required" });
+            return res.status(400).json({
+                success: false,
+                message: "Journey ID is required"
+            });
         }
 
         const journey = await Journey.findById(id)
-            .populate("userId", "-password -__v")
+            .populate({
+                path: "userId",
+                select: "-password -__v",
+                // Optional: populate vehicles if needed
+                // populate: { path: "vehicles", select: "-__v" }
+            })
             .lean()
             .exec();
 
         if (!journey) {
-            return res.status(404).json({ success: false, message: "Journey not found" });
+            return res.status(404).json({
+                success: false,
+                message: "Journey not found"
+            });
         }
 
-        res.status(200).json({ success: true, data: journey });
+        return res.status(200).json({
+            success: true,
+            data: journey
+        });
+
     } catch (error) {
         console.error("Error while fetching journey:", error);
 
         if (error.name === 'CastError') {
-            return res.status(400).json({ success: false, message: "Invalid journey ID format" });
+            return res.status(400).json({
+                success: false,
+                message: "Invalid journey ID format"
+            });
         }
 
-        res.status(500).json({ success: false, message: "Server Error" });
+        return res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
     }
 };
 
