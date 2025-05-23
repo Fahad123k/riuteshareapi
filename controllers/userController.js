@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Journey = require("../models/Journey")
 const axios = require("axios");
-
+const mongoose = require('mongoose');
 
 const createJourney = async (req, res) => {
     try {
@@ -368,6 +368,7 @@ const loginUser = async (req, res) => {
         if (!isMatch) {
             return res.status(400).json({ success: false, message: "Invalid email or password" });
         }
+        delete user.password;
 
         // Generate JWT Token
         const token = jwt.sign(
@@ -377,22 +378,22 @@ const loginUser = async (req, res) => {
         );
 
         // Remove sensitive data from the user object
-        const userResponse = {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            number: user.number,
-            idVerified: user.idVerified,
-            rating: user.rating,
-        };
+        // const userResponse = {
+        //     id: user._id,
+        //     name: user.name,
+        //     email: user.email,
+        //     number: user.number,
+        //     isVerified: user.isVerified,
+        //     rating: user.rating,
+        // };
 
-        console.log("Response", userResponse)
+        // console.log("Response", userResponse)
 
         res.status(200).json({
             success: true,
             message: "Login successful",
             token,
-            user: userResponse,
+            user,
         });
 
     } catch (error) {
@@ -403,11 +404,15 @@ const loginUser = async (req, res) => {
 const getAllUsers = async (req, res) => {
     try {
         const users = await User.find();
-        res.json(users);
+        // console.log("All user data:", users);
+
+        return res.status(200).json(users);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("Error fetching users:", error.message);
+        return res.status(500).json({ error: "Server Error" });
     }
 };
+
 
 
 const getUserById = async (req, res) => {
@@ -452,9 +457,75 @@ const updateUser = async (req, res) => {
     }
 };
 
+const updateUserByAdmin = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const updates = req.body;
+
+        // 1. Validate the user ID format
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Invalid user ID format' });
+        }
+
+        // 2. List of allowed fields to update (security best practice)
+        const allowedUpdates = ['name', 'email', 'number', 'rating', 'isVerified', 'role'];
+        const isValidOperation = Object.keys(updates).every(update =>
+            allowedUpdates.includes(update)
+        );
+
+        if (!isValidOperation) {
+            return res.status(400).json({ message: 'Invalid updates attempted' });
+        }
+
+        // 3. Find and update the user
+        const user = await User.findByIdAndUpdate(
+            userId,
+            updates,
+            {
+                new: true,
+                runValidators: true
+            }
+        ).select('-password -__v'); // Exclude sensitive/uneeded fields
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 4. Log the changes for audit purposes
+        console.log(`User ${userId} updated with:`, updates);
+        console.log('Updated user:', user);
+
+        res.json({
+            success: true,
+            message: 'User updated successfully',
+            user
+        });
+
+    } catch (error) {
+        console.error('Update Error:', error);
+
+        // Handle specific Mongoose validation errors
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors: messages
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Server error during update',
+            error: error.message
+        });
+    }
+};
+
+
 const deleteUser = async (req, res) => {
     try {
-        const user = await User.findByIdAndDelete(req.params.id);
+        const user = await User.findByIdAndDelete(req.params.userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -530,6 +601,59 @@ const haversineDistance = (coord1, coord2) => {
 };
 
 
+
+// async function migrateUsers() {
+//     try {
+//         // await mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+
+//         const users = await User.find();
+
+//         for (const user of users) {
+//             let updated = false;
+
+//             if (!user.number) {
+//                 user.number = "0000000000"; // or any default number
+//                 updated = true;
+//             }
+
+//             if (user.rating === undefined) {
+//                 user.rating = 0;
+//                 updated = true;
+//             }
+
+//             if (user.idVerified === undefined) {
+//                 user.idVerified = false;
+//                 updated = true;
+//             }
+
+//             if (!user.role) {
+//                 user.role = "user";
+//                 updated = true;
+//             }
+
+//             if (!Array.isArray(user.vehicles)) {
+//                 user.vehicles = [];
+//                 updated = true;
+//             }
+
+//             if (updated) {
+//                 await user.save();
+//                 console.log(`User ${user.email} updated.`);
+//             }
+//         }
+
+//         console.log("Migration complete.");
+//         process.exit();
+//     } catch (error) {
+//         console.error("Migration failed:", error);
+//         process.exit(1);
+//     }
+// }
+
+// migrateUsers();
+
+
+
 module.exports = {
     registerUser,
     loginUser,
@@ -540,5 +664,6 @@ module.exports = {
     createJourney,
     getAllJourney,
     getJourneyByID,
+    updateUserByAdmin,
     searchCities,
 };

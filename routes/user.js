@@ -3,6 +3,7 @@ const Journey = require("../models/Journey");
 const router = express.Router();
 
 const protect = require("../middleware/middleware");  // Import middleware
+const verifyAdmin = require('../middleware/verifyAdmin')
 
 const {
     registerUser,
@@ -14,6 +15,7 @@ const {
     createJourney,
     getAllJourney,
     getJourneyByID,
+    updateUserByAdmin,
     searchCities,
 } = require("../controllers/userController");
 
@@ -21,7 +23,8 @@ router.post("/register", registerUser);
 router.post("/createJourney", protect, createJourney);  // Protect the route
 router.post("/login", loginUser);
 
-router.get("/all-user", getAllUsers);
+router.get("/users", getAllUsers);
+
 router.get("/all-journey", getAllJourney);
 router.get("/search", searchCities);
 router.get("/:id", getUserById);
@@ -49,6 +52,7 @@ router.get('/get-journeyby-id/:id?', protect, async (req, res) => {  // Protect 
 });
 
 router.put("/update", protect, updateUser);
-router.delete("/:id", deleteUser);
+router.patch("/update/:userId", verifyAdmin, updateUserByAdmin);
+router.delete("/delete/:userId", verifyAdmin, deleteUser);
 
 module.exports = router;
