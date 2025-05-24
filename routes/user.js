@@ -28,6 +28,7 @@ router.get("/users", getAllUsers);
 router.get("/all-journey", getAllJourney);
 router.get("/search", searchCities);
 router.get("/:id", getUserById);
+router.get('/journey/:id?', protect, getJourneyByID)
 router.get('/get-journeyby-id/:id?', protect, async (req, res) => {  // Protect the route
     try {
         const id = req.params.id || req.query.id;

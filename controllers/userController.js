@@ -130,45 +130,64 @@ const getLocation = async (lat, lng) => {
         return "Unknown Location";
     }
 };
+const getJourneyNameByGeos = async (journeyData, res = null) => {
+    try {
+        // If input is an array, process all; if single object, wrap in array
+        const journeys = Array.isArray(journeyData) ? journeyData : [journeyData];
+        const updatedJourneys = [];
 
-const getJourneyNameByGeos = async (allJourneys) => {
-    let updatedJourneys = [];
-    for (let i = 0; i < allJourneys.length; i++) {
-        const journey = allJourneys[i];
-        await delay(i * 500); // Stagger requests to avoid rate limits
-        const user = await User.findById(journey.userId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
+        for (let i = 0; i < journeys.length; i++) {
+            const journey = journeys[i];
+            await delay(i * 500); // Avoid API rate limits
+
+            // 1. Get user details (if userId exists)
+            let username = "Unknown User";
+            if (journey.userId && journey.userId.name) {
+                username = journey.userId.name; // Directly use if already populated
+            } else if (journey.userId) { // If just an ObjectId, fetch user
+                const user = await User.findById(journey.userId);
+                if (!user) {
+                    if (res) return res.status(404).json({ message: "User not found" });
+                    throw new Error("User not found");
+                }
+                username = user.name;
+            }
+
+            // 2. Extract coordinates (handle missing data)
+            const leaveFromCoords = journey.leaveFrom?.coordinates || [0, 0];
+            const goingToCoords = journey.goingTo?.coordinates || [0, 0];
+
+            // 3. Fetch location names (with fallback)
+            let leaveFrom = "Unknown Location";
+            let goingTo = "Unknown Location";
+            try {
+                leaveFrom = await getLocation(leaveFromCoords[1], leaveFromCoords[0]);
+                goingTo = await getLocation(goingToCoords[1], goingToCoords[0]);
+            } catch (err) {
+                console.error("Geocoding failed:", err);
+            }
+
+            // 4. Merge all data (preserve original + add new fields)
+            updatedJourneys.push({
+                ...journey._doc || journey, // Keep all original fields
+                username, // Added field
+                leaveFrom, // Added field
+                goingTo, // Added field
+                // rawCoordinates: { // Optional: Include raw coords
+                //     leaveFrom: { lat: leaveFromCoords[1], lng: leaveFromCoords[0] },
+                //     goingTo: { lat: goingToCoords[1], lng: goingToCoords[0] },
+                // },
+            });
         }
-        // console.log("res", user.name)
-        const username = user.name;
 
-
-        const leaveFromLat = journey.leaveFrom.coordinates[1]; // Latitude
-        const leaveFromLng = journey.leaveFrom.coordinates[0]; // Longitude
-
-        const goingToLat = journey.goingTo.coordinates[1]; // Latitude
-        const goingToLng = journey.goingTo.coordinates[0]; // Longitude
-
-
-        // console.log(leaveFromLat, leaveFromLng);
-
-        const leaveFrom = await getLocation(leaveFromLat, leaveFromLng);
-        const goingTo = await getLocation(goingToLat, goingToLng);
-
-        updatedJourneys.push({
-            ...journey._doc,
-            username,
-            leaveFrom,
-            goingTo,
-        });
+        // Return same format as input (single object or array)
+        return Array.isArray(journeyData) ? updatedJourneys : updatedJourneys[0];
+    } catch (error) {
+        console.error("Error in getJourneyNameByGeos:", error);
+        if (res) return res.status(500).json({ message: "Internal server error" });
+        throw error;
     }
-
-    return updatedJourneys;
-}
-
-// const getNameByID= async
-
+};
 const getAllJourney = async (req, res) => {
     try {
         const allJourneys = await Journey.find().sort({ createdAt: -1 });
@@ -181,6 +200,7 @@ const getAllJourney = async (req, res) => {
         }
 
         const updatedJourneys = await getJourneyNameByGeos(allJourneys)
+        console.log("alll journey:", updatedJourneys)
         res.status(200).json(updatedJourneys);
     } catch (error) {
         console.error("Error fetching journeys:", error);
@@ -194,48 +214,25 @@ const getJourneyByID = async (req, res) => {
         const id = req.params.id || req.query.id;
 
         if (!id) {
-            return res.status(400).json({
-                success: false,
-                message: "Journey ID is required"
-            });
+            return res.status(400).json({ error: "ID is required" });
         }
 
         const journey = await Journey.findById(id)
-            .populate({
-                path: "userId",
-                select: "-password -__v",
-                // Optional: populate vehicles if needed
-                // populate: { path: "vehicles", select: "-__v" }
-            })
+            .populate("userId", "-password -role -__v") // exclude password, role, and __v
             .lean()
             .exec();
 
+
+        const updatedJourney = await getJourneyNameByGeos(journey)
+
+        // console.log("updated journer: ", updatedJourney)
         if (!journey) {
-            return res.status(404).json({
-                success: false,
-                message: "Journey not found"
-            });
+            return res.status(404).json({ error: "Journey not found" });
         }
 
-        return res.status(200).json({
-            success: true,
-            data: journey
-        });
-
-    } catch (error) {
-        console.error("Error while fetching journey:", error);
-
-        if (error.name === 'CastError') {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid journey ID format"
-            });
-        }
-
-        return res.status(500).json({
-            success: false,
-            message: "Server Error"
-        });
+        res.json(updatedJourney);
+    } catch (err) {
+        res.status(500).json({ error: "Invalid ID format" });
     }
 };
 
