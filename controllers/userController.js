@@ -369,7 +369,7 @@ const loginUser = async (req, res) => {
 
         // Generate JWT Token
         const token = jwt.sign(
-            { id: user._id, email: user.email }, // Payload
+            { id: user._id, email: user.email, role: user.role }, // Payload
             process.env.JWT_SECRET, // Secret key
             { expiresIn: process.env.JWT_EXPIRES_IN || "12h" } // Expiration time
         );
@@ -414,15 +414,28 @@ const getAllUsers = async (req, res) => {
 
 const getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id);
+        const user = await User.findById(req.params.id).select("-password");
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
         res.json(user);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ message: "Server error" });
     }
 };
+
+// In your routes file
+// router.get("/users/:id", protect, async (req, res) => {
+//     try {
+//         const user = await User.findById(req.params.id).select("-password");
+//         if (!user) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+//         res.json(user);
+//     } catch (error) {
+//         res.status(500).json({ message: "Server error" });
+//     }
+// });
 
 
 const updateUser = async (req, res) => {
