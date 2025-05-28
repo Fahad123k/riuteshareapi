@@ -1,5 +1,7 @@
+// socket.js (or wherever your socket setup is)
 module.exports = (server) => {
     const { Server } = require('socket.io');
+    const Message = require('./models/message');
 
     const io = new Server(server, {
         cors: {
@@ -8,33 +10,64 @@ module.exports = (server) => {
             methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         },
         connectionStateRecovery: {
-            maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+            maxDisconnectionDuration: 2 * 60 * 1000,
             skipMiddlewares: true,
         }
     });
 
-    // Map to track userId <=> socketId
     const userSocketMap = new Map();
 
     io.on('connection', (socket) => {
-        console.log(`New user connected: ${socket.id}`);
+        console.log(`New connection: ${socket.id}`);
 
-        // Receive userId from client after connection
+        // Register user with their socket
         socket.on('register-user', (userId) => {
             userSocketMap.set(userId, socket.id);
-            socket.join(userId); // Join room with userId (for private messaging)
-            console.log(`User ${userId} registered to socket ${socket.id}`);
+            socket.join(userId);
+            console.log(`User ${userId} registered with socket ${socket.id}`);
         });
 
-        // Handle sending private messages
-        socket.on('send-message', ({ to, text, from }) => {
-            console.log(`Message from ${from} to ${to}: ${text}`);
-            io.to(to).emit('receive-message', { text, from });
+        // Handle sending messages
+        socket.on('send-message', async ({ senderId, receiverId, text }, callback) => {
+            try {
+                // Save to database
+                const newMessage = new Message({
+                    senderId,
+                    receiverId,
+                    text
+                });
+
+                const savedMessage = await newMessage.save();
+                const populatedMessage = await Message.populate(savedMessage, [
+                    { path: 'senderId', select: 'name email' },
+                    { path: 'receiverId', select: 'name email' }
+                ]);
+
+                // Send to receiver
+                const receiverSocketId = userSocketMap.get(receiverId);
+                if (receiverSocketId) {
+                    io.to(receiverSocketId).emit('receive-message', populatedMessage);
+                }
+
+                // Send success to sender
+                callback({ success: true, message: populatedMessage });
+            } catch (error) {
+                console.error('Error sending message:', error);
+                callback({ success: false, error: 'Failed to send message' });
+            }
+        });
+
+        // Handle typing indicators
+        socket.on('typing', ({ receiverId, senderId }) => {
+            const receiverSocketId = userSocketMap.get(receiverId);
+            if (receiverSocketId) {
+                io.to(receiverSocketId).emit('user-typing', { senderId });
+            }
         });
 
         // Clean up on disconnect
         socket.on('disconnect', () => {
-            console.log(`User disconnected: ${socket.id}`);
+            console.log(`Disconnected: ${socket.id}`);
             for (let [userId, id] of userSocketMap.entries()) {
                 if (id === socket.id) {
                     userSocketMap.delete(userId);

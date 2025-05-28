@@ -17,34 +17,46 @@ const {
     getAllJourney,
     getJourneyByID,
     updateUserByAdmin,
+    updateUserRating,
     searchCities,
 } = require("../controllers/userController");
 
 
 
-
-
 router.get('/messages', protect, async (req, res) => {
     try {
-        const { senderId, receiverId } = req.query;
+        const userId = req.user._id; // Get from protected route
+        const { receiverId } = req.query;
+
+        if (!receiverId) {
+            return res.status(400).json({ message: "Receiver ID is required" });
+        }
 
         const messages = await Message.find({
             $or: [
-                { senderId, receiverId },
-                { senderId: receiverId, receiverId: senderId }
+                { senderId: userId, receiverId },
+                { senderId: receiverId, receiverId: userId }
             ]
-        }).sort({ createdAt: 1 });
+        })
+            .sort({ createdAt: 1 })
+            .populate('senderId', 'name email')
+            .populate('receiverId', 'name email');
 
         res.json(messages);
     } catch (error) {
+        console.error("Error fetching messages:", error);
         res.status(500).json({ message: "Error fetching messages" });
     }
 });
 
-// Save a new message
 router.post('/messages', protect, async (req, res) => {
     try {
-        const { senderId, receiverId, text } = req.body;
+        const senderId = req.user._id; // Get from protected route
+        const { receiverId, text } = req.body;
+
+        if (!receiverId || !text) {
+            return res.status(400).json({ message: "Receiver ID and text are required" });
+        }
 
         const newMessage = new Message({
             senderId,
@@ -53,12 +65,20 @@ router.post('/messages', protect, async (req, res) => {
         });
 
         const savedMessage = await newMessage.save();
-        res.status(201).json(savedMessage);
+
+        // Populate sender info before sending back
+        const populatedMessage = await Message.findById(savedMessage._id)
+            .populate('senderId', 'name email');
+
+        // Emit socket event
+        io.to(receiverId).emit('newMessage', populatedMessage);
+
+        res.status(201).json(populatedMessage);
     } catch (error) {
+        console.error("Error saving message:", error);
         res.status(500).json({ message: "Error saving message" });
     }
 });
-
 
 
 // router.post("/auth/verify", protect, async (req, res) => {
@@ -110,6 +130,7 @@ router.get('/get-journeyby-id/:id?', protect, async (req, res) => {  // Protect 
 
 router.put("/update", protect, updateUser);
 router.patch("/update/:userId", verifyAdmin, updateUserByAdmin);
+router.patch("/updaterating/:userId", updateUserRating);
 router.delete("/delete/:userId", verifyAdmin, deleteUser);
 
 module.exports = router;

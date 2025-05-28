@@ -472,6 +472,12 @@ const updateUserByAdmin = async (req, res) => {
         const { userId } = req.params;
         const updates = req.body;
 
+        const { rating } = req.body;
+
+        // Validate rating (1-5)
+        if (rating === undefined || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: "Invalid rating value" });
+        }
         // 1. Validate the user ID format
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: 'Invalid user ID format' });
@@ -490,6 +496,7 @@ const updateUserByAdmin = async (req, res) => {
         // 3. Find and update the user
         const user = await User.findByIdAndUpdate(
             userId,
+            { rating },
             updates,
             {
                 new: true,
@@ -508,6 +515,73 @@ const updateUserByAdmin = async (req, res) => {
         res.json({
             success: true,
             message: 'User updated successfully',
+            user
+        });
+
+    } catch (error) {
+        console.error('Update Error:', error);
+
+        // Handle specific Mongoose validation errors
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors: messages
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Server error during update',
+            error: error.message
+        });
+    }
+};
+
+const updateUserRating = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        // const updates = req.body;
+
+        const { rating } = req.body;
+
+        // Validate rating (1-5)
+        if (rating === undefined || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: "Invalid rating value" });
+        }
+        // 1. Validate the user ID format
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'Invalid user ID format' });
+        }
+
+        // 2. List of allowed fields to update (security best practice)
+        // const allowedUpdates = ['rating',];
+
+
+
+
+        // 3. Find and update the user
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { rating },
+
+            {
+                new: true,
+                runValidators: true
+            }
+        ).select('-password -__v'); // Exclude sensitive/uneeded fields
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 4. Log the changes for audit purposes
+        console.log(`User ${userId} updated with: ${rating}`);
+
+        res.json({
+            success: true,
+            message: "User's rating updated successfully",
             user
         });
 
@@ -675,5 +749,6 @@ module.exports = {
     getAllJourney,
     getJourneyByID,
     updateUserByAdmin,
+    updateUserRating,
     searchCities,
 };
