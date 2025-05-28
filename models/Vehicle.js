@@ -30,5 +30,6 @@ const vehicleSchema = new mongoose.Schema({
         required: true
     }
 }, { timestamps: true });
+vehicleSchema.index({ user: 1 });
 
 module.exports = mongoose.model("Vehicle", vehicleSchema);

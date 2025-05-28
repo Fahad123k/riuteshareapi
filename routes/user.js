@@ -2,7 +2,7 @@ const express = require('express');
 const Journey = require("../models/Journey");
 const router = express.Router();
 const Message = require('../models/message');
-
+const Vehicle = require('../models/Vehicle');
 const protect = require("../middleware/middleware");
 const verifyAdmin = require('../middleware/verifyAdmin')
 
@@ -126,6 +126,106 @@ router.get('/get-journeyby-id/:id?', protect, async (req, res) => {  // Protect 
     } catch (err) {
         res.status(500).json({ error: "Invalid ID format" });
     }
+});
+
+
+
+
+
+
+// / Get vehicle details
+// router.get('vehicle/:id', protect, async (req, res) => {
+//     try {
+//         const vehicles = await Vehicle.find({ user: req.params.id });
+//         res.json(vehicles);
+//     } catch (err) {
+//         res.status(500).json({ message: err.message });
+//     }
+// });
+
+// // getsingle vehocle
+router.get('/vehicle/:id', protect, async (req, res) => {
+    try {
+
+
+        const userId = req.params.id;
+        // console.log(userId)
+        const vehicle = await Vehicle.findOne({
+            user: userId
+        }).select('-__v');
+
+        // const vehicle = await Vehicle.findById(req.params.id);
+        if (!vehicle) {
+            return [];
+        }
+
+        res.json(vehicle);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Update vehicle
+router.patch('/vehicle/:id', protect, async (req, res) => {
+    try {
+        const userId = req.params.id;
+        // const userId = req.user.id;
+
+        // console.log("usser id", req.params)
+        // return;
+
+        // Find vehicle that belongs to this user
+        const vehicle = await Vehicle.findOne({
+            user: userId
+        }).select('-__v');
+
+        if (!vehicle) {
+            return res.status(404).json({
+                message: 'Vehicle not found or unauthorized access'
+            });
+        }
+
+        // Prepare update object directly from req.body
+        const updateData = {
+            ...req.body,
+            capacity: req.body.capacity ? Number(req.body.capacity) : undefined
+        };
+
+        // Remove undefined fields to prevent overwriting existing data
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] === undefined || updateData[key] === '') {
+                delete updateData[key];
+            }
+        });
+
+        const updatedVehicle = await Vehicle.findByIdAndUpdate(
+            userId,
+            updateData,
+            {
+                new: true,
+                runValidators: true
+            }
+        ).select('-__v');
+
+        res.json({
+            message: 'Vehicle updated successfully',
+            vehicle: updatedVehicle
+        });
+    } catch (err) {
+        console.error('Error updating vehicle:', err);
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({
+                message: 'Validation error',
+                errors: Object.values(err.errors).map(e => e.message)
+            });
+        }
+
+        res.status(500).json({
+            message: 'Server error while updating vehicle',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+    }
+
 });
 
 router.put("/update", protect, updateUser);
