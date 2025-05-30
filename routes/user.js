@@ -133,15 +133,6 @@ router.get('/get-journeyby-id/:id?', protect, async (req, res) => {  // Protect 
 
 
 
-// / Get vehicle details
-// router.get('vehicle/:id', protect, async (req, res) => {
-//     try {
-//         const vehicles = await Vehicle.find({ user: req.params.id });
-//         res.json(vehicles);
-//     } catch (err) {
-//         res.status(500).json({ message: err.message });
-//     }
-// });
 
 // // getsingle vehocle
 router.get('/vehicle/:id', protect, async (req, res) => {

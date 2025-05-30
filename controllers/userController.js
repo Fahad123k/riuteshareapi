@@ -472,19 +472,19 @@ const updateUserByAdmin = async (req, res) => {
         const { userId } = req.params;
         const updates = req.body;
 
-        const { rating } = req.body;
+        // const { rating } = req.body;
 
         // Validate rating (1-5)
-        if (rating === undefined || rating < 1 || rating > 5) {
-            return res.status(400).json({ message: "Invalid rating value" });
-        }
+        // if (rating === undefined || rating < 1 || rating > 5) {
+        //     return res.status(400).json({ message: "Invalid rating value" });
+        // }
         // 1. Validate the user ID format
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: 'Invalid user ID format' });
         }
 
         // 2. List of allowed fields to update (security best practice)
-        const allowedUpdates = ['name', 'email', 'number', 'rating', 'isVerified', 'role'];
+        const allowedUpdates = ['name', 'email', 'number', 'isVerified', 'role'];
         const isValidOperation = Object.keys(updates).every(update =>
             allowedUpdates.includes(update)
         );
@@ -496,7 +496,7 @@ const updateUserByAdmin = async (req, res) => {
         // 3. Find and update the user
         const user = await User.findByIdAndUpdate(
             userId,
-            { rating },
+            // { rating },
             updates,
             {
                 new: true,
